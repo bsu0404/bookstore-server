@@ -1,24 +1,25 @@
 const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
 
-//좋아요와 like해결해야함.
 const allBooks = (req, res) => {
   const { category_id, new_book, limit, current_page } = req.query;
   let offset = limit * (current_page - 1);
 
-  let sql = "SELECT * FROM books LIMIT ? OFFSET ?";
-  let values = [parseInt(limit), parseInt(offset)];
+  let sql =
+    "SELECT *, (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes FROM books";
+  let values = [];
   if (category_id && new_book) {
-    // 카테고리별 조회 추가
     sql +=
-      " WHERE category_id= ? AND pub_date BETWEEN DATE_SUB(NOW(),INTERVAL 1 MONTH) AND NOW()";
-    values = [...values, category_id];
+      " WHERE category_id=? AND pub_date BETWEEN DATE_SUB(NOW(),INTERVAL 1 MONTH) AND NOW()";
+    values.push(category_id);
   } else if (new_book) {
     sql += " WHERE pub_date BETWEEN DATE_SUB(NOW(),INTERVAL 1 MONTH) AND NOW()";
   } else if (category_id) {
-    sql += " WHERE category_id= ?";
-    values = [...values, category_id];
+    sql += " WHERE category_id=?";
+    values.push(category_id);
   }
+  sql += "LIMIT ? OFFSET ?";
+  values.push(parseInt(limit), parseInt(offset));
 
   conn.query(sql, values, (err, results) => {
     if (err) {
@@ -34,10 +35,18 @@ const allBooks = (req, res) => {
 };
 //개별 도서 조회
 const book = (req, res) => {
-  const { id } = req.params;
-  let sql = `SELECT * FROM books LEFT JOIN category ON books.category_id=category.id WHERE books.id= ?`;
+  let { user_id } = req.body;
+  const { id: book_id } = req.params;
+  let sql = `SELECT * , 
+  (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes,
+  (SELECT count(*) FROM likes WHERE user_id=? AND liked_book_id=?) AS liked
+   FROM Bookshop.books 
+   LEFT JOIN category 
+   ON books.category_id=category.category_id
+   WHERE books.id=?;`;
+  let values = [user_id, book_id, book_id];
 
-  conn.query(sql, id, (err, results) => {
+  conn.query(sql, values, (err, results) => {
     if (err) {
       console.log(err);
       return res.status(StatusCodes.BAD_REQUEST).end();
