@@ -1,21 +1,15 @@
 const express = require("express");
 const router = express.Router();
+const {
+  addCart,
+  removeCart,
+  getCart,
+} = require("../controller/CartController");
 
-router.use(express.json);
-//장바구니 담기
-router.post("/", (req, res) => {
-  res.json({ msg: "장바구니 담기" });
-});
-//장바구니 조회
-router.get("/", (req, res) => {
-  res.json({ msg: "장바구니 조회" });
-});
-//장바구니 삭제
-router.delete("/:id", (req, res) => {
-  res.json({ msg: "장바구니 삭제" });
-});
-//주문서에서 선택된 장바구니 조회
-// router.get("/carts", (req, res) => {
-//     res.json({ msg: "장바구니 조회" });
-//   });
+router.use(express.json());
+
+router.post("/", addCart); //장바구니 담기
+router.get("/", getCart); //장바구니 목록 조회 or 선택한 주문 예상 상품 목록 조회(주문서)
+router.delete("/:id", removeCart); //장바구니 삭제
+
 module.exports = router;
