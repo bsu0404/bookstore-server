@@ -62,12 +62,24 @@ const deleteCartItems = async (items) => {
   return results;
 };
 //결제내역 조회
-const getOrders = (req, res) => {
-  res.json({ msg: "장바구니 조회" });
+const getOrders = async (req, res) => {
+  let sql = `SELECT orders.id,ordered_at, address, receiver,contact,book_title, total_quantity,total_price
+  FROM orders 
+  LEFT JOIN delivery
+  ON orders.delivery_id = delivery.id`;
+  let [rows, fields] = await (await conn).query(sql);
+  res.status(StatusCodes.OK).json(rows);
 };
-//주문상세
-const orderDetail = (req, res) => {
-  res.json({ msg: "장바구니 조회" });
+//주문 상세 조회
+const orderDetail = async (req, res) => {
+  const { id } = req.params;
+  let sql = `SELECT book_id, title ,author,price, quantity
+  FROM orderedBook 
+  LEFT JOIN books
+  ON orderedBook.book_id = books.id
+  WHERE order_id = ?`;
+  let [rows, fields] = await (await conn).query(sql, id);
+  res.status(StatusCodes.OK).json(rows);
 };
 
 module.exports = {

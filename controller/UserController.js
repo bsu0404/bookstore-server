@@ -49,6 +49,7 @@ const login = (req, res) => {
         {
           email: loginUser.email,
           name: loginUser.name,
+          id: loginUser.id,
         },
         process.env.PRIVATE_KEY,
         {

@@ -1,4 +1,4 @@
-const mariadb = require("mysql2/promise");
+const mariadb = require("mysql2");
 // import mariadb from "mysql2/promise";
 // const connection = async () => {
 //   const conn = await mariadb.createConnection({
