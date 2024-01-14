@@ -43,3 +43,6 @@ INSERT INTO orderedBook VALUES (null,ordered_id,2,1);
 SELECT last_insert_id(); //
 SELECT max(id) FROM Bookshop.orderedBook; 
 SELECT id FROM orderedBook ORDER BY id DESC LIMIT 1
+
+//cartItems 삭제하기
+DELETE FROM cartItems WHERE id IN ?;

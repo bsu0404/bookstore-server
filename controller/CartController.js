@@ -28,7 +28,6 @@ const getCart = (req, res) => {
   WHERE user_id=? AND cartItems.id IN (?)`;
   let values = [user_id, selected];
 
-
   conn.query(sql, values, (err, results) => {
     if (err) {
       console.log(err);
