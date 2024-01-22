@@ -20,9 +20,10 @@ const join = async (req, res) => {
     [results] = await (await conn).query(sql, values);
     if (results.affectedRows) {
       return res.status(StatusCodes.CREATED).json(results);
+    } else {
+      return res.status(StatusCodes.BAD_REQUEST).json(results);
     }
   } catch (error) {
-    console.log(error);
     return res.status(StatusCodes.BAD_REQUEST).json(error);
   }
 };

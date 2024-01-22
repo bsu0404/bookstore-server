@@ -5,11 +5,15 @@ dotenv.config();
 const authorization = (req) => {
   try {
     let token = req.headers["authorization"];
-    let decoded = jwt.verify(token, process.env.PRIVATE_KEY);
-    console.log(decoded);
-
-    return decoded;
+    if (token) {
+      let decoded = jwt.verify(token, process.env.PRIVATE_KEY);
+      console.log(decoded);
+      return decoded;
+    } else {
+      return undefined;
+    }
   } catch (err) {
+    console.log(err);
     return err;
   }
 };

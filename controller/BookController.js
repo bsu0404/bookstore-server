@@ -4,11 +4,12 @@ const jwt = require("jsonwebtoken");
 const authorization = require("../util/authorization");
 
 const allBooks = async (req, res) => {
+  let allBooksRes = {};
   const { category_id, new_book, limit, current_page } = req.query;
   let offset = limit * (current_page - 1);
 
   let sql =
-    "SELECT *, (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes FROM books";
+    "SELECT SQL_CALC_FOUND_ROWS *, (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes FROM books";
   let values = [];
   if (category_id && new_book) {
     sql +=
@@ -20,17 +21,35 @@ const allBooks = async (req, res) => {
     sql += " WHERE category_id=?";
     values.push(category_id);
   }
-  sql += "LIMIT ? OFFSET ?";
+  sql += " LIMIT ? OFFSET ?";
   values.push(parseInt(limit), parseInt(offset));
   try {
     [results] = await (await conn).query(sql, values);
 
     if (results.length > 0) {
-      return res.status(StatusCodes.OK).json(results);
+      allBooksRes.books = results;
     } else {
       return res.status(StatusCodes.NOT_FOUND).end();
     }
   } catch (error) {
+    console.log(error);
+    return res.status(StatusCodes.BAD_REQUEST).end();
+  }
+
+  sql = "SELECT found_rows()";
+  try {
+    [results] = await (await conn).query(sql);
+
+    let pagenation = {};
+    pagenation.current_page = parseInt(current_page);
+    pagenation.total_count = results[0]["found_rows()"];
+
+    allBooksRes.pagenation = pagenation;
+
+    return res.status(StatusCodes.OK).json(allBooksRes);
+  } catch (error) {
+    console.log(error);
+
     return res.status(StatusCodes.BAD_REQUEST).end();
   }
 };
@@ -38,26 +57,47 @@ const allBooks = async (req, res) => {
 const book = async (req, res) => {
   const { id: book_id } = req.params;
 
-  //로그인 상태x: liked 추가
-  //로그인 상태o: liked 없이
-  let sql = `SELECT * , 
+  let decoded = authorization(req);
+
+  if (decoded instanceof jwt.TokenExpiredError) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "로그인 세션이 만료되었습니다." });
+  } else if (decoded instanceof jwt.JsonWebTokenError) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "잘못된 토큰입니다." });
+  } else {
+    console.log(`decoded:${decoded == undefined}`);
+    let sql =
+      decoded != undefined
+        ? `SELECT * , 
   (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes,
   (SELECT count(*) FROM likes WHERE user_id=? AND liked_book_id=?) AS liked
    FROM Bookshop.books 
    LEFT JOIN category 
    ON books.category_id=category.category_id
-   WHERE books.id=?;`;
-  let values = [user_id, book_id, book_id];
+   WHERE books.id=?;`
+        : `SELECT * , 
+   (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes
+    FROM Bookshop.books 
+    LEFT JOIN category 
+    ON books.category_id=category.category_id
+    WHERE books.id=?;`;
+    let values =
+      decoded != undefined ? [decoded.id, book_id, book_id] : book_id;
 
-  try {
-    [results] = await (await conn).query(sql, values);
-    if (results.length > 0) {
-      return res.status(StatusCodes.OK).json(results);
-    } else {
-      return res.status(StatusCodes.NOT_FOUND).end();
+    try {
+      [results] = await (await conn).query(sql, values);
+      if (results.length > 0) {
+        return res.status(StatusCodes.OK).json(results[0]);
+      } else {
+        return res.status(StatusCodes.NOT_FOUND).end();
+      }
+    } catch (error) {
+      console.log(error);
+      return res.status(StatusCodes.BAD_REQUEST).end();
     }
-  } catch (error) {
-    return res.status(StatusCodes.BAD_REQUEST).end();
   }
 };
 
