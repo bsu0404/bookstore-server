@@ -1,7 +1,9 @@
 const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
+const jwt = require("jsonwebtoken");
+const authorization = require("../util/authorization");
 
-const allBooks = (req, res) => {
+const allBooks = async (req, res) => {
   const { category_id, new_book, limit, current_page } = req.query;
   let offset = limit * (current_page - 1);
 
@@ -20,23 +22,24 @@ const allBooks = (req, res) => {
   }
   sql += "LIMIT ? OFFSET ?";
   values.push(parseInt(limit), parseInt(offset));
+  try {
+    [results] = await (await conn).query(sql, values);
 
-  conn.query(sql, values, (err, results) => {
-    if (err) {
-      console.log(err);
-      return res.status(StatusCodes.BAD_REQUEST).end();
-    }
     if (results.length > 0) {
       return res.status(StatusCodes.OK).json(results);
     } else {
       return res.status(StatusCodes.NOT_FOUND).end();
     }
-  });
+  } catch (error) {
+    return res.status(StatusCodes.BAD_REQUEST).end();
+  }
 };
 //개별 도서 조회
-const book = (req, res) => {
-  let { user_id } = req.body;
+const book = async (req, res) => {
   const { id: book_id } = req.params;
+
+  //로그인 상태x: liked 추가
+  //로그인 상태o: liked 없이
   let sql = `SELECT * , 
   (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes,
   (SELECT count(*) FROM likes WHERE user_id=? AND liked_book_id=?) AS liked
@@ -46,17 +49,16 @@ const book = (req, res) => {
    WHERE books.id=?;`;
   let values = [user_id, book_id, book_id];
 
-  conn.query(sql, values, (err, results) => {
-    if (err) {
-      console.log(err);
-      return res.status(StatusCodes.BAD_REQUEST).end();
-    }
+  try {
+    [results] = await (await conn).query(sql, values);
     if (results.length > 0) {
       return res.status(StatusCodes.OK).json(results);
     } else {
       return res.status(StatusCodes.NOT_FOUND).end();
     }
-  });
+  } catch (error) {
+    return res.status(StatusCodes.BAD_REQUEST).end();
+  }
 };
 
 module.exports = {

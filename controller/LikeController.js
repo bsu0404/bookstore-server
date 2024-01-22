@@ -1,22 +1,9 @@
 const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
 const jwt = require("jsonwebtoken");
-let dotenv = require("dotenv");
-dotenv.config();
+const authorization = require("../util/authorization");
 
-const authorization = (req) => {
-  try {
-    let token = req.headers["authorization"];
-    let decoded = jwt.verify(token, process.env.PRIVATE_KEY);
-    console.log(decoded);
-
-    return decoded;
-  } catch (err) {
-    return err;
-  }
-};
-
-const addLike = (req, res) => {
+const addLike = async (req, res) => {
   //좋아요 추가
   const { id: liked_book_id } = req.params;
 
@@ -33,17 +20,21 @@ const addLike = (req, res) => {
     let sql = "INSERT INTO likes (user_id, liked_book_id) VALUES(?,?);";
     let values = [decoded.id, liked_book_id];
 
-    conn.query(sql, values, (err, results) => {
-      if (err) {
-        console.log(err);
-        return res.status(StatusCodes.BAD_REQUEST).end();
-      }
+    try {
+      const results = await (await conn).query(sql, values);
 
-      return res.status(StatusCodes.OK).json(results);
-    });
+      if (results[0].affectedRows) {
+        return res.status(StatusCodes.OK).json(results);
+      } else {
+        return res.status(StatusCodes.BAD_REQUEST).json("잘못된 요청입니다.");
+      }
+    } catch (error) {
+      return res.status(StatusCodes.BAD_REQUEST).json(error);
+    }
   }
 };
-const subLike = (req, res) => {
+
+const subLike = async (req, res) => {
   const { id: liked_book_id } = req.params;
   let decoded = authorization(req);
   if (decoded instanceof jwt.TokenExpiredError) {
@@ -58,14 +49,17 @@ const subLike = (req, res) => {
     let sql = "DELETE FROM likes WHERE user_id=? AND liked_book_id = ?";
     let values = [decoded.id, liked_book_id];
 
-    conn.query(sql, values, (err, results) => {
-      if (err) {
-        console.log(err);
-        return res.status(StatusCodes.BAD_REQUEST).end();
-      }
+    try {
+      const results = await (await conn).query(sql, values);
 
-      return res.status(StatusCodes.OK).json(results);
-    });
+      if (results[0].affectedRows) {
+        return res.status(StatusCodes.OK).json(results);
+      } else {
+        return res.status(StatusCodes.BAD_REQUEST).json("잘못된 요청입니다.");
+      }
+    } catch (error) {
+      return res.status(StatusCodes.BAD_REQUEST).json(error);
+    }
   }
 };
 module.exports = { addLike, subLike };

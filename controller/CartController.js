@@ -1,23 +1,10 @@
 const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
 const jwt = require("jsonwebtoken");
-let dotenv = require("dotenv");
-dotenv.config();
-
-const authorization = (req) => {
-  try {
-    let token = req.headers["authorization"];
-    let decoded = jwt.verify(token, process.env.PRIVATE_KEY);
-    console.log(decoded);
-
-    return decoded;
-  } catch (err) {
-    return err;
-  }
-};
+const authorization = require("../util/authorization");
 
 //장바구니 담기
-const addCart = (req, res) => {
+const addCart = async (req, res) => {
   const { book_id, quantity } = req.body;
   let decoded = authorization(req);
 
@@ -30,21 +17,24 @@ const addCart = (req, res) => {
       .status(StatusCodes.BAD_REQUEST)
       .json({ message: "잘못된 토큰입니다." });
   } else {
-    let sql = " INSERT INTO cartItems(book_id,quantity,user_id) VALUES(?,?,?);";
-    let values = [book_id, quantity, decoded.id];
+    let sql = ` INSERT INTO cartItems(book_id,quantity,user_id) 
+    VALUES (?,?,?) on duplicate key update quantity = ?;`;
+    let values = [book_id, quantity, decoded.id, quantity];
 
-    conn.query(sql, values, (err, results) => {
-      if (err) {
-        console.log(err);
-        return res.status(StatusCodes.BAD_REQUEST).end();
+    try {
+      [results] = await (await conn).query(sql, values);
+      if (results.affectedRows) {
+        return res.status(StatusCodes.OK).json(results);
+      } else {
+        return res.status(StatusCodes.BAD_REQUEST).json(results);
       }
-
-      return res.status(StatusCodes.OK).json(results);
-    });
+    } catch (error) {
+      return res.status(StatusCodes.BAD_REQUEST).json(error);
+    }
   }
 };
 //장바구니 목록 조회
-const getCart = (req, res) => {
+const getCart = async (req, res) => {
   const { selected } = req.body;
 
   let decoded = authorization(req);
@@ -62,24 +52,24 @@ const getCart = (req, res) => {
     FROM cartItems 
     LEFT JOIN books 
     ON books.id = cartItems.book_id
-    WHERE user_id=? AND cartItems.id IN (?)`;
+    WHERE user_id=?`;
+    let values = [decoded.id];
 
-    let values = [decoded.id, selected];
-    conn.query(sql, values, (err, results) => {
-      if (err) {
-        console.log(err);
-        return res.status(StatusCodes.BAD_REQUEST).end();
-      }
-      if (results.length > 0) {
-        return res.status(StatusCodes.OK).json(results);
-      } else {
-        return res.status(StatusCodes.NOT_FOUND).json(results);
-      }
-    });
+    if (selected) {
+      //주문서 작성 시 장바구니 목록 조회
+      sql += ` AND cartItems.id IN (?)`;
+      values.push(selected);
+    }
+    try {
+      [results] = await (await conn).query(sql, values);
+      return res.status(StatusCodes.OK).json(results);
+    } catch (error) {
+      return res.status(StatusCodes.BAD_REQUEST).json(results);
+    }
   }
 };
 //장바구니 도서 삭제
-const removeCart = (req, res) => {
+const removeCart = async (req, res) => {
   let decoded = authorization(req);
   if (decoded instanceof jwt.TokenExpiredError) {
     return res
@@ -91,15 +81,16 @@ const removeCart = (req, res) => {
       .json({ message: "잘못된 토큰입니다." });
   } else {
     let sql = "DELETE FROM cartItems WHERE id = ?;";
-
-    conn.query(sql, decoded.id, (err, results) => {
-      if (err) {
-        console.log(err);
-        return res.status(StatusCodes.BAD_REQUEST).end();
+    try {
+      [results] = await (await conn).query(sql, decoded.id);
+      if (results.affectedRows == 0) {
+        return res.status(StatusCodes.OK).json(results);
+      } else {
+        return res.status(StatusCodes.BAD_REQUEST).json(results);
       }
-
-      return res.status(StatusCodes.OK).json(results);
-    });
+    } catch (error) {
+      return res.status(StatusCodes.BAD_REQUEST).json(error);
+    }
   }
 };
 

@@ -14,4 +14,4 @@ const authorization = (req) => {
   }
 };
 
-module.exports = { authorization };
+module.exports = authorization;
