@@ -7,6 +7,7 @@ const authorization = require("../util/authorization");
 const addCart = async (req, res) => {
   const { book_id, quantity } = req.body;
   let decoded = authorization(req);
+  console.log(decoded);
 
   if (decoded instanceof jwt.TokenExpiredError) {
     return res
@@ -14,15 +15,21 @@ const addCart = async (req, res) => {
       .json({ message: "로그인 세션이 만료되었습니다." });
   } else if (decoded instanceof jwt.JsonWebTokenError) {
     return res
-      .status(StatusCodes.BAD_REQUEST)
+      .status(StatusCodes.UNAUTHORIZED)
       .json({ message: "잘못된 토큰입니다." });
+  } else if (decoded == undefined) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "토큰이 필요합니다." });
   } else {
-    let sql = ` INSERT INTO cartItems(book_id,quantity,user_id) 
-    VALUES (?,?,?) on duplicate key update quantity = ?;`;
+    let sql = `INSERT INTO cartItems (book_id, quantity, user_id) 
+    VALUES (?,?,?) `;
     let values = [book_id, quantity, decoded.id, quantity];
+    console.log(book_id, quantity, decoded.id);
 
     try {
       [results] = await (await conn).query(sql, values);
+      console.log(results);
       if (results.affectedRows) {
         return res.status(StatusCodes.OK).json(results);
       } else {
@@ -38,6 +45,7 @@ const getCart = async (req, res) => {
   const { selected } = req.body;
 
   let decoded = authorization(req);
+  console.log(decoded);
 
   if (decoded instanceof jwt.TokenExpiredError) {
     return res
@@ -47,6 +55,10 @@ const getCart = async (req, res) => {
     return res
       .status(StatusCodes.BAD_REQUEST)
       .json({ message: "잘못된 토큰입니다." });
+  } else if (decoded == undefined) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "토큰이 필요합니다." });
   } else {
     let sql = `SELECT cartItems.id,book_id,title,summary,quantity,price 
     FROM cartItems 
@@ -70,6 +82,8 @@ const getCart = async (req, res) => {
 };
 //장바구니 도서 삭제
 const removeCart = async (req, res) => {
+  const { id: cartId } = req.params;
+
   let decoded = authorization(req);
   if (decoded instanceof jwt.TokenExpiredError) {
     return res
@@ -79,11 +93,16 @@ const removeCart = async (req, res) => {
     return res
       .status(StatusCodes.BAD_REQUEST)
       .json({ message: "잘못된 토큰입니다." });
+  } else if (decoded == undefined) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "토큰이 필요합니다." });
   } else {
-    let sql = "DELETE FROM cartItems WHERE id = ?;";
+    let sql = "DELETE FROM cartItems WHERE id = ?";
+
     try {
-      [results] = await (await conn).query(sql, decoded.id);
-      if (results.affectedRows == 0) {
+      [results] = await (await conn).query(sql, cartId);
+      if (results.affectedRows) {
         return res.status(StatusCodes.OK).json(results);
       } else {
         return res.status(StatusCodes.BAD_REQUEST).json(results);

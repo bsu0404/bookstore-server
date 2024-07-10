@@ -14,8 +14,12 @@ const addLike = async (req, res) => {
       .json({ message: "로그인 세션이 만료되었습니다." });
   } else if (decoded instanceof jwt.JsonWebTokenError) {
     return res
-      .status(StatusCodes.BAD_REQUEST)
+      .status(StatusCodes.UNAUTHORIZED)
       .json({ message: "잘못된 토큰입니다." });
+  } else if (decoded == undefined) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "로그인 토큰이 필요합니다." });
   } else {
     let sql = "INSERT INTO likes (user_id, liked_book_id) VALUES(?,?);";
     let values = [decoded.id, liked_book_id];

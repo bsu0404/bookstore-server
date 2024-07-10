@@ -4,6 +4,16 @@ const app = express();
 const dotenv = require("dotenv");
 dotenv.config();
 
+const cors = require("cors");
+const corsOptions = {
+  origin: "http://localhost:3000",
+  credentials: true,
+  optionSuccessStatus: 200,
+  allowedHeaders: ["content-type", "Authorization", "Content-Type"],
+};
+
+app.use(cors(corsOptions));
+
 app.listen(process.env.PORT);
 
 const userRouter = require("./routes/users");

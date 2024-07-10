@@ -54,18 +54,16 @@ const login = async (req, res) => {
           },
           process.env.PRIVATE_KEY,
           {
-            expiresIn: "15m",
+            expiresIn: "300m",
             issuer: "sungeun",
           }
         );
         console.log(token);
 
-        res.cookie("token", token, {
-          httpOnly: true,
-        });
-        return res
-          .status(StatusCodes.OK)
-          .json({ message: `${loginUser.name}님 환영합니다.` });
+        // res.cookie("token", token, {
+        //   httpOnly: true,
+        // });
+        return res.status(StatusCodes.OK).json({ ...results[0], token: token });
       } else {
         return res.status(StatusCodes.UNAUTHORIZED).json({
           message: "id 및 pw를 확인해주세요.",
@@ -84,10 +82,6 @@ const PasswordResetrequest = async (req, res) => {
   [results] = await (await conn).query(sql, email);
   if (results.length) {
     {
-      if (err) {
-        console.log(err);
-        return res.status(StatusCodes.BAD_REQUEST).end();
-      }
       const user = results[0];
       if (user) {
         return res.status(StatusCodes.OK).json({ email: email });

@@ -4,8 +4,8 @@ const { addLike, subLike } = require("../controller/LikeController");
 
 router.use(express.json());
 //좋아요 추가
-router.post("/add/:id", addLike);
+router.post("/:id", addLike);
 //좋아요 삭제
-router.delete("/sub/:id", subLike);
+router.delete("/:id", subLike);
 
 module.exports = router;

@@ -7,6 +7,7 @@ const allCategory = async (req, res) => {
 
   try {
     [results] = await (await conn).query(sql);
+    console.log(results);
     return res.status(StatusCodes.OK).json(results);
   } catch (error) {
     console.log(error);
