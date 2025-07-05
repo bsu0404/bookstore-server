@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const conn = require("../mariadb");
-const { allBooks, book } = require("../controller/bookController");
+const { allBooks, book } = require("../controller/BookController");
 
 router.use(express.json());
 //전체 도서 조회 & 카테고리 조회
