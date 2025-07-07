@@ -8,6 +8,8 @@ const addCart = async (req, res) => {
   const { book_id, quantity } = req.body;
   let decoded = authorization(req);
   console.log(decoded);
+  console.log(Date.now());
+  console.log(new Date().toISOString());
 
   if (decoded instanceof jwt.TokenExpiredError) {
     return res
