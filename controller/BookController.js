@@ -64,13 +64,13 @@ const book = async (req, res) => {
       ? `SELECT * , 
   (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes,
   (SELECT count(*) FROM likes WHERE user_id=? AND liked_book_id=?) AS liked
-   FROM Bookshop.books 
+   FROM books 
    LEFT JOIN category 
    ON books.category_id=category.category_id
    WHERE books.id=?;`
       : `SELECT * , 
    (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes
-    FROM Bookshop.books 
+    FROM books 
     LEFT JOIN category 
     ON books.category_id=category.category_id
     WHERE books.id=?;`;
