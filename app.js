@@ -6,7 +6,7 @@ dotenv.config();
 
 const cors = require("cors");
 const corsOptions = {
-  origin: "http://localhost:3000",
+  origin: ["http://localhost:3000", "https://www.books04.store"],
   credentials: true,
   optionSuccessStatus: 200,
   allowedHeaders: ["content-type", "Authorization", "Content-Type"],
